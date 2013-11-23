@@ -114,7 +114,7 @@
         	android:title="Image Brightness"
         	android:summary=""
         	android:key="image_brightness"
-        	android:defaultValue="0"
+        	android:defaultValue="5"
         	android:entries="@array/brightness_entries"
         	android:entryValues="@array/brightness_values"
         	/>
