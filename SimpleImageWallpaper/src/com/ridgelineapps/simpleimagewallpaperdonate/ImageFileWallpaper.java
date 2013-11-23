@@ -312,7 +312,7 @@ public class ImageFileWallpaper {
                 }
             }
             catch(Throwable t) {
-                t.printStackTrace();
+                //t.printStackTrace();
             }
             
             if(fullScreenWidth <= 0 || fullScreenHeight <= 0) {

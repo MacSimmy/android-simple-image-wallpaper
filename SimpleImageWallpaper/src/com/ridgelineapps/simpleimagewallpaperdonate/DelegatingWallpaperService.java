@@ -94,6 +94,9 @@ public class DelegatingWallpaperService extends WallpaperService {
         
         ImageFileWallpaper wallpaper;
         private boolean visible = false;
+        
+        BroadcastReceiver mReceiver;       
+        
 
         public Paint background;
 
@@ -110,7 +113,7 @@ public class DelegatingWallpaperService extends WallpaperService {
             IntentFilter filter = new IntentFilter(Intent.ACTION_USER_PRESENT);
             filter.addAction(Intent.ACTION_SCREEN_OFF);
             filter.addAction(Intent.ACTION_SCREEN_ON);
-            BroadcastReceiver mReceiver = new ScreenReceiver();
+            mReceiver = new ScreenReceiver();
             registerReceiver(mReceiver, filter);        
         }
 
@@ -173,6 +176,15 @@ public class DelegatingWallpaperService extends WallpaperService {
 		public void onDestroy() {
             if(debug)
                 System.out.println("Simple Image Wallpaper: onDestroy()");
+            try {
+               if(mReceiver != null) {
+                  unregisterReceiver(mReceiver);
+               }
+            }
+            catch(Exception e) {
+               e.printStackTrace();
+            }
+            
             visible = false;
            	wallpaper.cleanup();
            	handler.removeCallbacks(drawRunner);

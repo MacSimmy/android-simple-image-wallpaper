@@ -17,7 +17,9 @@
 
 package com.ridgelineapps.simpleimagewallpaperdonate;
 
+import java.io.FileDescriptor;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 
 import android.content.Context;
@@ -26,8 +28,13 @@ import android.graphics.BitmapFactory;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 
 public class Utils {
+    public static boolean isKitKat() {
+       return true;
+    }
+   
     public static Bitmap loadBitmap(Context context, Uri imageURI, int width, int height, boolean rotateIfNecessary, Integer density, float quality, Bitmap.Config config) throws FileNotFoundException {
        System.gc();
         BitmapFactory.Options o = new BitmapFactory.Options();
@@ -42,13 +49,27 @@ public class Utils {
            o.inPreferredConfig = config;
         }
         
-        InputStream is = context.getContentResolver().openInputStream(imageURI);
-        Bitmap bmp = BitmapFactory.decodeStream(is, null, o);
-        try {
-            is.close();
-        } catch (Exception e) {
-            // TODO: put all in logs
-            e.printStackTrace();
+        Bitmap bmp = null;
+        if(isKitKat()) {
+           ParcelFileDescriptor parcelFileDescriptor = context.getContentResolver().openFileDescriptor(imageURI, "r");
+           FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+           bmp = BitmapFactory.decodeFileDescriptor(fileDescriptor, null, o);
+           try {
+              parcelFileDescriptor.close();           
+           }
+           catch(IOException e) {
+              e.printStackTrace();
+           }
+        }
+        else {
+           InputStream is = context.getContentResolver().openInputStream(imageURI);
+           bmp = BitmapFactory.decodeStream(is, null, o);
+           try {
+              is.close();
+          } catch (Exception e) {
+              // TODO: put all in logs
+              e.printStackTrace();
+          }
         }
         
         int imageWidth = o.outWidth;
@@ -128,17 +149,34 @@ public class Utils {
         
         int retries = 0;
         boolean success = false;
+        
+        InputStream is = null;
+        
         while(!success) {
             try {
                Utils.recycleBitmap(bmp);
                bmp = null;
                System.gc();
-                // TODO: don't load stream twice?
-                is = context.getContentResolver().openInputStream(imageURI);
-                
-        //        System.out.println("s:" + scale + " o:" + o.outWidth + ", " + o.outHeight + " **************************** decoding:" + imageURI);
-                
-                bmp = BitmapFactory.decodeStream(is, null, o);
+               
+               if(isKitKat()) {
+                  ParcelFileDescriptor parcelFileDescriptor = context.getContentResolver().openFileDescriptor(imageURI, "r");
+                  FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+                  bmp = BitmapFactory.decodeFileDescriptor(fileDescriptor, null, o);
+                  try {
+                     parcelFileDescriptor.close();           
+                  }
+                  catch(IOException e) {
+                     e.printStackTrace();
+                  }
+               }
+               else {               
+                  // TODO: don't load stream twice?
+                   is = context.getContentResolver().openInputStream(imageURI);
+                   
+           //        System.out.println("s:" + scale + " o:" + o.outWidth + ", " + o.outHeight + " **************************** decoding:" + imageURI);
+                   
+                   bmp = BitmapFactory.decodeStream(is, null, o);
+               }
                 success = true;
             }
             catch(OutOfMemoryError e) {
@@ -155,7 +193,9 @@ public class Utils {
             finally
             {
                 try {
-                    is.close();
+                   if(is != null) {
+                      is.close();
+                   }
                 } catch (Exception e) {
                     // TODO: put all in logs
                     e.printStackTrace();
