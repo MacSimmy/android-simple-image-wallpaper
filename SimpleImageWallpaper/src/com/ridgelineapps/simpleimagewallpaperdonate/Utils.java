@@ -22,20 +22,27 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.net.Uri;
+import android.os.Build;
 import android.os.ParcelFileDescriptor;
 
 public class Utils {
     public static boolean isKitKat() {
+       if (Build.VERSION.SDK_INT < 19) {
+          return false;
+       }
+       
        return true;
     }
    
-    public static Bitmap loadBitmap(Context context, Uri imageURI, int width, int height, boolean rotateIfNecessary, Integer density, float quality, Bitmap.Config config) throws FileNotFoundException {
+    @SuppressLint("NewApi")
+   public static Bitmap loadBitmap(Context context, Uri imageURI, int width, int height, boolean rotateIfNecessary, Integer density, float quality, Bitmap.Config config) throws FileNotFoundException {
        System.gc();
         BitmapFactory.Options o = new BitmapFactory.Options();
         o.inJustDecodeBounds = true;
@@ -51,6 +58,7 @@ public class Utils {
         
         Bitmap bmp = null;
         if(isKitKat()) {
+           //System.out.println(imageURI);
            ParcelFileDescriptor parcelFileDescriptor = context.getContentResolver().openFileDescriptor(imageURI, "r");
            FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
            bmp = BitmapFactory.decodeFileDescriptor(fileDescriptor, null, o);

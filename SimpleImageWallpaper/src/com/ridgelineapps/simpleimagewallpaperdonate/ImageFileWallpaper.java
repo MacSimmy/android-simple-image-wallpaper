@@ -325,7 +325,8 @@ public class ImageFileWallpaper {
                 height = fullScreenHeight;
             }
             
-            System.out.println("width=" + width + ", height=" + height + ", canvas_width=" + canvas.getWidth() + ", canvas_height=" + canvas.getHeight());
+            if(debug)
+               System.out.println("width=" + width + ", height=" + height + ", canvas_width=" + canvas.getWidth() + ", canvas_height=" + canvas.getHeight());
         }
         
         canvas.drawRect(0, 0, width, height, engine.background);

@@ -17,11 +17,13 @@
 
 package com.ridgelineapps.simpleimagewallpaperdonate;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
@@ -29,8 +31,6 @@ import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 import android.provider.MediaStore;
-
-import com.ridgelineapps.simpleimagewallpaperdonate.R;
 
 public class Prefs extends PreferenceActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
     static final int SELECT_IMAGE = 1;
@@ -139,51 +139,36 @@ public class Prefs extends PreferenceActivity implements SharedPreferences.OnSha
        }
       super.onDestroy();
    }
+   
+   void startIntent(int sel) {
+      if (Build.VERSION.SDK_INT < 19){
+         Intent intent = new Intent();
+         intent.setType("image/*");
+         intent.setAction(Intent.ACTION_GET_CONTENT);
+         startActivityForResult(Intent.createChooser(intent, "Select Image"), sel);
+     } else {
+         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+         intent.addCategory(Intent.CATEGORY_OPENABLE);
+         intent.setType("image/*");
+         startActivityForResult(intent, 10 + sel);
+     }
+   }
 
    void selectBackgroundImage() {
-        Intent intent = new Intent();
-        intent.setType("image/*");
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(intent, "Select Image"), SELECT_IMAGE);
-        // Intent i = new Intent(
-        // Intent.ACTION_PICK,
-        // android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-        // startActivityForResult(i, ACTIVITY_SELECT_IMAGE);
+         startIntent(SELECT_IMAGE);
     }
 
     void selectPortraitBackgroundImage() {
-        Intent intent = new Intent();
-        intent.setType("image/*");
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(intent, "Select Image"), SELECT_PORTRAIT_IMAGE);
-        // Intent i = new Intent(
-        // Intent.ACTION_PICK,
-        // android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-        // startActivityForResult(i, ACTIVITY_SELECT_IMAGE);
+       startIntent(SELECT_PORTRAIT_IMAGE);
     }
     
     void selectLockscreenBackgroundImage() {
-        Intent intent = new Intent();
-        intent.setType("image/*");
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(intent, "Select Image"), LS_SELECT_IMAGE);
-        // Intent i = new Intent(
-        // Intent.ACTION_PICK,
-        // android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-        // startActivityForResult(i, ACTIVITY_SELECT_IMAGE);
+       startIntent(LS_SELECT_IMAGE);
     }
 
     void selectLockscreenPortraitBackgroundImage() {
-        Intent intent = new Intent();
-        intent.setType("image/*");
-        intent.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(Intent.createChooser(intent, "Select Image"), LS_SELECT_PORTRAIT_IMAGE);
-        // Intent i = new Intent(
-        // Intent.ACTION_PICK,
-        // android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
-        // startActivityForResult(i, ACTIVITY_SELECT_IMAGE);
+       startIntent(LS_SELECT_PORTRAIT_IMAGE);
     }
-    
     
     @Override
     public void onSharedPreferenceChanged(SharedPreferences shared, String key) {
@@ -245,16 +230,38 @@ public class Prefs extends PreferenceActivity implements SharedPreferences.OnSha
         }
     }
     
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (resultCode == Activity.RESULT_OK) {
+    @SuppressLint("NewApi")
+   public void onActivityResult(int requestCode, int resultCode, Intent data) {
+       super.onActivityResult(requestCode, resultCode, data);
+       
+       if (resultCode == Activity.RESULT_OK && data != null) {
+             boolean newerSdk = false;
+             if(requestCode > 10) {
+                newerSdk = true;
+                requestCode -= 10;
+             }
             if (requestCode == SELECT_IMAGE || requestCode == SELECT_PORTRAIT_IMAGE || requestCode == LS_SELECT_IMAGE || requestCode == LS_SELECT_PORTRAIT_IMAGE) {
                 Uri selectedImageUri = data.getData();
-
+                
+                if(newerSdk) {
+                  // System.out.println("~~~~~~~~~" + selectedImageUri);
+                   final int takeFlags = data.getFlags()
+                           & (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                           | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                   // Check for the freshest data.
+                   getContentResolver().takePersistableUriPermission(selectedImageUri, takeFlags);
+                }
                 filemanagerstring = selectedImageUri.getPath();
                 selectedImagePath = getPath(selectedImageUri);
 
+                //System.out.println("~~~~~~~~~" + filemanagerstring + ", " + selectedImagePath);
+                
                 String finalUri = (selectedImagePath != null) ? selectedImagePath : filemanagerstring;
+                
                 finalUri = FILE_URI_PREFIX + finalUri;
+                if(newerSdk) {
+                   finalUri = selectedImageUri.toString();
+                }
 
                 SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getBaseContext());
                 SharedPreferences.Editor editor = prefs.edit();
